@@ -42,3 +42,5 @@ speed:
 output:
   - type: 3D
     file: relaxation_rotframe_composants_3D.gif
+  - type: xy
+    file: relaxation_rotframe_composants_xy.gif

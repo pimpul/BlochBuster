@@ -2,11 +2,10 @@ title: Spin Echo
 pulseSeq:
     - t: 0
       FA: 90
-      B1: 'RF/exc_min_phase.yml'
       dur: 3
     - t: 10
       FA: 180
-      B1: 'RF/ref.yml'
+      #B1: 'RF/ref.yml'
       dur: 3
       phase: 90
 TR: 40

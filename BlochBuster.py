@@ -40,6 +40,13 @@ import argparse
 import yaml
 import FFMPEGwriter
 
+#different colors for nIsochromats
+def createIsochromatColors(config):
+    cmap = matplotlib.colormaps['plasma']
+    isochromatColors = cmap(np.linspace(0,1,config['nIsochromats']))
+    isochromatColors = np.delete(isochromatColors,-1,1)
+    isochromatColors = isochromatColors.tolist()
+    return isochromatColors
 
 colors = {  'bg':       [1,1,1], 
             'circle':   [0,0,0,.03],
@@ -48,7 +55,7 @@ colors = {  'bg':       [1,1,1],
             'spoilText':[.5,0,0],
             'RFtext':   [0,.5,0],
             'Gtext':    [80/256,80/256,0],
-            'comps': [  [.3,.5,.2],
+            'comps': [  [0,0,1], #[.3,.5,.2]
                         [.1,.4,.5],
                         [.5,.3,.2],
                         [.5,.4,.1],
@@ -120,7 +127,7 @@ def plotFrame3D(config, vectors, frame, output):
     else:
         aspect = 1
         
-    figSize = 5 # figure size in inches
+    figSize = 8 # figure size in inches
     pxw, pxh = figureSize(dpi=output['dpi'], width=figSize, height=figSize * aspect)
     fig = plt.figure(figsize=(pxw/output['dpi'], pxh/output['dpi']), dpi=output['dpi'])
     axLimit = max(nx,ny,nz)/2+.5
@@ -161,8 +168,9 @@ def plotFrame3D(config, vectors, frame, output):
     fig.text(.5, 1, config['title'], fontsize=14, horizontalalignment='center', verticalalignment='top', color=colors['text'])
 
     # Draw time
-    time = config['tFrames'][frame%(len(config['t'])-1)] # frame time [msec]
-    time_text = fig.text(0, 0, 'time = %.1f msec' % (time), color=colors['text'], verticalalignment='bottom')
+    if output['time'] != 'off':
+        time = config['tFrames'][frame%(len(config['t'])-1)] # frame time [msec]
+        time_text = fig.text(0, 0, 'time = %.1f msec' % (time), color=colors['text'], verticalalignment='bottom')
 
     # TODO: put isochromats in this order from start
     order = [int((nIsoc-1)/2-abs(m-(nIsoc-1)/2)) for m in range(nIsoc)]
@@ -183,6 +191,8 @@ def plotFrame3D(config, vectors, frame, output):
                 for c in range(nComps):
                     for m in range(nIsoc):
                         col = colors['comps'][(c) % len(colors['comps'])]
+                        if (nComps == 1 and nIsoc > 1):
+                            col = colors['isochromats'][(m) % len(colors['isochromats'])]
                         M = vectors[x,y,z,c,m,:3,frame]
                         if not config['collapseLocations']:
                             pos = vectors[x,y,z,c,m,3:,frame]/config['locSpacing']
@@ -193,12 +203,13 @@ def plotFrame3D(config, vectors, frame, output):
                             arrowScale = 20
                         else:
                             arrowScale = 20*Mnorm/arrowheadThres # Shrink arrowhead for short arrows
-                        alpha = 1.-2*np.abs((m+.5)/nIsoc-.5)
+                        #alpha = 1.-2*np.abs((m+.5)/nIsoc-.5)
+                        alpha = 1
                         ax.add_artist(Arrow3D(  [pos[0], pos[0]+M[0]], 
                                                 [-pos[1], -pos[1]+M[1]],
                                                 [-pos[2], -pos[2]+M[2]], 
                                                 mutation_scale=arrowScale,
-                                                arrowstyle='-|>', shrinkA=0, shrinkB=0, lw=2,
+                                                arrowstyle='->', shrinkA=0, shrinkB=0, lw=2,
                                                 color=col, alpha=alpha, 
                                                 zorder=order[m]+nIsoc*int(100*(1-Mnorm))))
 
@@ -1056,10 +1067,10 @@ def setupPulseSeq(config):
     
 
 def arrangeLocations(slices, config, key='locations'):
-    ''' Check and setup locations or M0. Set nx, ny, and nz and store in config.
+    ''' Check and setup size or M0. Set nx, ny, and nz and store in config.
     
     Args:
-        slices: (nested) list of M0 or locations (spatial distribution of Meq).
+        slices: (nested) list of M0 or crop (spatial distribution of Meq).
         config: configuration dictionary.
         key:    pass 'locations' for Meq distribution, and 'M0' for M0 distribution.
         
@@ -1159,6 +1170,8 @@ def checkConfig(config):
         config['maxRFspeed'] = 0.001
     elif not isinstance(config['maxRFspeed'], Number):
         raise Exception("Config 'maxRFspeed' must be numeric")
+    if 'time' not in config:
+        config['time'] = 'on'
 
     setupPulseSeq(config)
 
@@ -1340,6 +1353,9 @@ def run(configFile, leapFactor=1):
     if config['background']['color'] == 'black' and colors['bg'][0] == 1:
         for i in ['bg', 'axis', 'text', 'circle']:
             colors[i][:3] = list(map(lambda x: 1-x, colors[i][:3]))
+    ### create colors for isochromats
+    isochromatColors = createIsochromatColors(config)
+    colors["isochromats"] = isochromatColors
 
     ### Simulate ###
     vectors = np.empty((config['nx'],config['ny'],config['nz'],config['nComps'],config['nIsochromats'],6,len(config['t'])))
@@ -1408,7 +1424,8 @@ def run(configFile, leapFactor=1):
                 elif output['type'] in ['xy', 'z']:
                     fig = plotFrameMT(config, signal, frame, output)
                 plt.draw()
-
+                
+                   
                 filesToSave = []
                 if frame in output['freezeFrames']:
                     filesToSave.append('{}_{}.png'.format('.'.join(outfile.split('.')[:-1]), str(frame).zfill(4)))
@@ -1431,6 +1448,7 @@ def parseAndRun():
     parser.add_argument('--configFile', '-c',
                         help="Name of configuration text file",
                         type=str,
+                        #default='config/SpEnc.yml')
                         default='')
     parser.add_argument('--leapFactor', '-l',
                         help="Leap factor for smaller filesize and fewer frames per second",

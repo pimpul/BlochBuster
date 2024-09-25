@@ -8,6 +8,8 @@ pulseSeq:
 TR: 5
 nTR: 15
 B0: 1.5
+nIsochromats: 20
+isochromatStep: 0.01
 components:
   - T1: 60.0
     T2: 55.0
@@ -15,3 +17,11 @@ speed: 0.005
 output:
   - type: 3D
     file: SPGR_3D.gif
+  - type: kspace
+    file: SPGR_kspace.gif
+  - type: psd
+    file: SPGR_psd.gif
+  - type: xy
+    file: SPGR_xy.gif
+  - type: z
+    file: SPGR_z.gif

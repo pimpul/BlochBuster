@@ -2,7 +2,8 @@ title: Spatial Excitation
 pulseSeq:
   - t: 0
     FA: 90
-    B1: 'RF/exc_min_phase.yml'
+    #B1: 'RF/exc_min_phase.yml'
+    B1: 'RF/hard.yml'
     dur: 3
     Gx: 30
 TR: 10
@@ -15,7 +16,9 @@ locations:
    [.7, .7, .7, .7, .7, .7, .7],
    [ 0, .7, .7, .7, .7, .7,  0],
    [ 0,  0, .7, .7, .7,  0,  0]]
-speed: 0.005
+speed: 0.001
+background:
+  color: white
 output:
   - type: 3D
     file: SpExc_3D.gif
